@@ -2,14 +2,14 @@ from openai import OpenAI
 import json
 
 
-def extract_job_ad_sections(job_ad_content, OPENAI_API_KEY, openai_model="gpt-4o" ):
+def extract_job_ad_sections(job_ad_content, OPENAI_API_KEY, openai_model ):
     """
     Extracts job advertisement content into structured sections: job description, technical skills, and soft skills.
 
     Args:
         job_ad_content (str): The content of the job advertisement.
         OPENAI_API_KEY (str): API key for authenticating with OpenAI's GPT model.
-        openai_model (str, optional): The OpenAI model to use for extraction (default is "gpt-4o").
+        openai_model (str, optional): The OpenAI model to use for extraction .
 
     Returns:
         dict: A JSON object containing the extracted sections: job description, technical skills, and soft skills.
@@ -41,41 +41,9 @@ def extract_job_ad_sections(job_ad_content, OPENAI_API_KEY, openai_model="gpt-4o
         }
         ],
         response_format = { "type": "json_object" },
-        temperature=0.5,         # Low creativity
-        max_tokens=1000,          # Limit response length
+        temperature=0.5,         # Keeping it low, as it should describe job ad accurately
+        max_tokens=1000,                      # Limit response length
     )
 
     return json.loads(response.choices[0].message.content)
 
-
-
-
-
-
-def check_if_question_is_relevat_to_job_ad(job_ad_content, user_question, openai_model, OPENAI_API_KEY):
-    # Create openai client
-    client = OpenAI(api_key=OPENAI_API_KEY)
-
-    system_content = """
-    Your HR (human resources) specialist. User will give you job advertisement content. Your you will need to evaluate if user's questions is about same 
-
-    """
-
-    response = client.chat.completions.create(
-        model=openai_model,
-        messages=[
-        {
-        "role": "system",
-        "content": system_content
-        },
-        {
-        "role": "user",
-        "content": job_ad_content
-        }
-        ],
-        response_format = { "type": "json_object" },
-        temperature=0.5,         # Low creativity
-        max_tokens=1000,          # Limit response length
-    )
-
-    return json.loads(response.choices[0].message.content)
