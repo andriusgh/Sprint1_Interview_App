@@ -52,7 +52,7 @@ def extract_job_ad_sections(job_ad_content, OPENAI_API_KEY, openai_model="gpt-4o
 
 
 
-def check_if_question_is_relevat_to_job_ad(job_ad_content, user_question, OPENAI_API_KEY):
+def check_if_question_is_relevat_to_job_ad(job_ad_content, user_question, openai_model, OPENAI_API_KEY):
     # Create openai client
     client = OpenAI(api_key=OPENAI_API_KEY)
 
