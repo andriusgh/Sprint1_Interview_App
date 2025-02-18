@@ -1,0 +1,99 @@
+import streamlit as st
+from openai import OpenAI
+import requests
+import validators
+
+import fun_llm
+
+
+st.title("Interview Practice App")
+
+# Set OpenAI API key from Streamlit secrets
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+# Set a default model
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-4o"
+
+
+
+# def fun_button_clear():
+#     st.session_state.clear()
+
+# button_clear = st.button("Clear everything", on_click=st.session_state.clear())
+
+# Read user input of job ad URL
+# https://www.cvbankas.lt/ai-developer-vilniuje/1-12713409              for testing
+url_job_ad = st.text_input("Enter web URL for job ad (only from www.cvonline.lt)")
+if validators.url(url_job_ad):
+    response = requests.get(url_job_ad)
+    if response.status_code == 200:
+        st.markdown(":green[**Job ad retrieved sucessfully!**]")
+
+        if "job_ad_segments" not in st.session_state:
+            job_ad_segments_json = fun_llm.openai_extract_job_ad_sections(response.text, OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"] )
+            st.session_state["job_ad_segments"] = job_ad_segments_json
+            # st.write(job_ad_segments_json)
+    else:
+        st.markdown(f":red[Failed to retrieve job ad page. Please check web address and try again. Status code: {response.status_code}]")
+else:
+    st.markdown(f":red[Incorrect web adress. Review and try again.]")
+
+st.divider()
+
+
+# Split screen into 2 sections
+col_left_side, buff, col_right_side = st.columns([0.6, 0.1, 1.2])
+
+with col_left_side:
+    if "job_ad_segments" in st.session_state:
+    
+        # st.write("**Job Description:**")
+        # if type(st.session_state["job_ad_segments"]["Job description"]) == list:
+        #     st.write("; ".join(st.session_state["job_ad_segments"]["Job description"]))
+        # else:
+        #     st.write(st.session_state["job_ad_segments"]["Job description"])
+        # st.write("**Technical Skills:**")
+        # st.write("-","\n - ".join(st.session_state["job_ad_segments"]["Technical skills"]))
+        # st.write("**Soft Skills:**")
+        # st.write("-","\n - ".join(st.session_state["job_ad_segments"]["Soft skills"]))
+
+        st.write("**Job Description:**")
+        st.write(st.session_state["job_ad_segments"]["Job description"])
+        st.write("**Technical Skills:**")
+        st.write(st.session_state["job_ad_segments"]["Technical skills"])
+        st.write("**Soft Skills:**")
+        st.write(st.session_state["job_ad_segments"]["Soft skills"])
+
+
+
+with col_right_side:
+    # Initialize chat history
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Accept user input
+    if prompt := st.chat_input("Ask your question !"):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            stream = client.chat.completions.create(
+                model=st.session_state["openai_model"],
+                messages=[
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.messages
+                ],
+                stream=True,
+            )
+            response = st.write_stream(stream)
+        st.session_state.messages.append({"role": "assistant", "content": response})
