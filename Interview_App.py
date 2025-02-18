@@ -17,10 +17,39 @@ if "openai_model" not in st.session_state:
 
 
 
-# def fun_button_clear():
-#     st.session_state.clear()
+# Set chatbot max number of questions
+# input_max_questions_disabled = False
+# max_questions = st.number_input("Chose how many question you'll want to ask: ", key="input_max_questions", min_value=1, max_value=10, value=5, step=1, disabled=input_max_questions_disabled)
+# if "chatbot_max_questions" not in st.session_state:
+#     st.session_state["chatbot_max_questions"] = max_questions
+#     st.session_state.input_max_questions_disabled = True
 
-# button_clear = st.button("Clear everything", on_click=st.session_state.clear())
+
+# Set chatbot availability. Will be dissabled after n questions
+if "chat_input_dissabled" not in st.session_state:
+    st.session_state["chat_input_dissabled"] = False
+
+# Set chatbot field's message
+if "chat_input_message" not in st.session_state:
+    st.session_state["chat_placeholder_message"] = "Ask your question !"
+
+# Set chatbot availability. Will be dissabled after n questions
+if "chat_input_counter" not in st.session_state:
+    st.session_state["chat_input_counter"] = 0
+elif st.session_state["chat_input_counter"] >= 3:
+    # Dissable chant input & change field's message
+    st.session_state["chat_input_dissabled"] = True
+    st.session_state["chat_placeholder_message"] = "Thank you for you time, interview finished"
+
+
+# App parameters widgets
+st.sidebar.title("App Parameters & Status Info")
+openai_temperature = st.sidebar.slider("Select questions creativity. Higher values - more random", min_value = 0.5, max_value = 0.9, value = 0.7, step = 0.05)
+
+# App status information. Like chat messages counter
+st.sidebar.title("App Status Info")
+st.sidebar.write(f"Chat messages counter: {st.session_state["chat_input_counter"]}")
+
 
 # Read user input of job ad URL
 # https://www.cvbankas.lt/ai-developer-vilniuje/1-12713409              for testing
@@ -31,7 +60,7 @@ if validators.url(url_job_ad):
         st.markdown(":green[**Job ad retrieved sucessfully!**]")
 
         if "job_ad_segments" not in st.session_state:
-            job_ad_segments_json = fun_llm.openai_extract_job_ad_sections(response.text, OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"] )
+            job_ad_segments_json = fun_llm.extract_job_ad_sections(response.text, OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"] )
             st.session_state["job_ad_segments"] = job_ad_segments_json
             # st.write(job_ad_segments_json)
     else:
@@ -47,24 +76,12 @@ col_left_side, buff, col_right_side = st.columns([0.6, 0.1, 1.2])
 
 with col_left_side:
     if "job_ad_segments" in st.session_state:
-    
-        # st.write("**Job Description:**")
-        # if type(st.session_state["job_ad_segments"]["Job description"]) == list:
-        #     st.write("; ".join(st.session_state["job_ad_segments"]["Job description"]))
-        # else:
-        #     st.write(st.session_state["job_ad_segments"]["Job description"])
-        # st.write("**Technical Skills:**")
-        # st.write("-","\n - ".join(st.session_state["job_ad_segments"]["Technical skills"]))
-        # st.write("**Soft Skills:**")
-        # st.write("-","\n - ".join(st.session_state["job_ad_segments"]["Soft skills"]))
-
         st.write("**Job Description:**")
         st.write(st.session_state["job_ad_segments"]["Job description"])
         st.write("**Technical Skills:**")
         st.write(st.session_state["job_ad_segments"]["Technical skills"])
         st.write("**Soft Skills:**")
         st.write(st.session_state["job_ad_segments"]["Soft skills"])
-
 
 
 with col_right_side:
@@ -78,7 +95,7 @@ with col_right_side:
             st.markdown(message["content"])
 
     # Accept user input
-    if prompt := st.chat_input("Ask your question !"):
+    if prompt := st.chat_input(st.session_state["chat_placeholder_message"], disabled=st.session_state["chat_input_dissabled"], key="key_chat_input",):
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         # Display user message in chat message container
@@ -97,3 +114,5 @@ with col_right_side:
             )
             response = st.write_stream(stream)
         st.session_state.messages.append({"role": "assistant", "content": response})
+        st.session_state["chat_input_counter"] += 1
+        
